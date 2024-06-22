@@ -56,13 +56,13 @@ To refer to a labeled portion of text.
 - Call
 To call a function that has access to the context, ie. labeled portions of text, and generate output. The called function can change the grammar based on the context by returning a Parser object.
 
-	def f( context ) :
+		def f( context ) :
 
-		# access and modify the parser context dictionary
+			# access and modify the parser context dictionary
 
-		return some_parser_or_a_string
+			return some_parser_or_a_string
 
-	Call( f )
+		Call( f )
 
 
 ### Working with tokens directly
