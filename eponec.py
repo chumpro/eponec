@@ -15,7 +15,7 @@ from transformers import LogitsProcessor, LogitsProcessorList
 config = {}
 
 
-def init( model_id = None ) :
+def init( model_id = None, local_files_only = True ) :
 
 	global config
 
@@ -30,11 +30,12 @@ def init( model_id = None ) :
 		legacy = False,
 		local_files_only = True,
 		clean_up_tokenization_spaces = False,
+#		clean_up_tokenization_spaces = True,
 		add_bos_token = False,
 		add_eos_token = False,
 	)
 
-	model = AutoModelForCausalLM.from_pretrained( config[ 'model_id' ], local_files_only = True )
+	model = AutoModelForCausalLM.from_pretrained( config[ 'model_id' ], local_files_only = local_files_only )
 
 	config[ 'tokenizer' ] = tokenizer
 
@@ -59,6 +60,8 @@ def decode( token_ids ) :
 
 	string = config[ 'tokenizer' ].decode( token_ids )
 
+#	string = ''.join( [ config[ 'usable_vocab' ][ t ] for t in token_ids ] )
+
 	return string
 
 
@@ -71,7 +74,7 @@ def get_usable_vocab() :
 
 def fix_token( s ) :
 
-	return s.replace( chr( 9601 ), ' ' )
+	return s.replace( chr( 9601 ), ' ' ).replace( '<0x0A>', '\n' )
 
 
 
@@ -275,7 +278,7 @@ class Parser ( object ) :
 			return ( self.structure == other.structure ) and ( self.store == other.store )
 
 
-	def generate( self, prompt = None, context = None, verbose = False ) :
+	def generate( self, prompt = None, context = None, verbose = False, keep_going = False ) :
 
 		context = {} if context is None else context
 
@@ -284,6 +287,8 @@ class Parser ( object ) :
 		matchers = [ self.attach( len( context[ 'prompt' ] ) ) ]
 
 		while True :
+
+			context[ 'terminals' ] = []
 
 			if verbose :
 
@@ -298,6 +303,12 @@ class Parser ( object ) :
 
 			matchers, new_offsets, logits_mask = parse_many( context, matchers )
 
+			if ( len( context[ 'terminals' ] ) == 1 ) and isinstance( context[ 'terminals' ][ 0 ], str )  :
+
+				context[ 'prompt' ] += context[ 'terminals' ][ 0 ]
+
+				continue
+
 			allowed_token_count = logits_mask.count_nonzero()
 
 			if allowed_token_count == 0 :
@@ -306,7 +317,7 @@ class Parser ( object ) :
 
 					print( 'FAILED: No allowed tokens.' )
 
-				return none
+				return None
 
 			logits_processor = LogitsMaskProcessor( logits_mask )
 
@@ -320,7 +331,7 @@ class Parser ( object ) :
 			)[ 0 ]
 
 
-			if output_ids[ -1 ] == config[ 'tokenizer' ].eos_token_id :
+			if output_ids[ -1 ] == config[ 'tokenizer' ].eos_token_id and ( not keep_going ) :
 
 				if verbose :
 
@@ -353,6 +364,7 @@ class Regex ( Parser ) :
 
 			return set(), set(), logits_mask_new()
 
+
 		token_ids = regex_token_match(
 			pattern,
 			prefix = context[ 'prompt' ][ offset : ]
@@ -360,6 +372,7 @@ class Regex ( Parser ) :
 
 		logits_mask = logits_mask_new( *token_ids )
 
+		context[ 'terminals' ].append( None )
 
 		if m.partial :
 
@@ -370,13 +383,44 @@ class Regex ( Parser ) :
 			return set( [ self.attach( offset ) ] ), set( [ len( context[ 'prompt' ] ) ] ), logits_mask
 
 
-class Text( Parser ) :
+
+class Text ( Parser ) :
 
 	def parse( self, offset, context ) :
 
 		[ text ] = self.structure
 
-		return Regex( regex.escape( text ) ).attach( offset ).parse( context )
+		pattern = regex.compile( regex.escape( text ) )
+
+		m = pattern.fullmatch( context[ 'prompt' ][ offset : ], partial = True )
+
+		if m is None :
+
+			return set(), set(), logits_mask_new()
+
+
+		token_ids = regex_token_match(
+			pattern,
+			prefix = context[ 'prompt' ][ offset : ]
+		)
+
+		logits_mask = logits_mask_new( *token_ids )
+
+		terminal = text[ len( context[ 'prompt' ] ) - offset : ]
+		
+		if len( terminal ) > 0 :
+
+			context[ 'terminals' ].append( terminal )
+
+		if m.partial :
+
+			return set( [ self.attach( offset ) ] ), set(), logits_mask
+
+		else :
+
+			return set( [ self.attach( offset ) ] ), set( [ len( context[ 'prompt' ] ) ] ), logits_mask
+
+
 
 
 
@@ -608,6 +652,8 @@ class Token ( Parser ) :
 
 		elif len( context[ 'prompt' ] ) == offset :
 
+			context[ 'terminals' ].append( None )
+
 			return set( [ self.attach( offset ) ] ), set(), logits_mask_new( token_id )
 
 		else :
@@ -634,6 +680,8 @@ class TokensRepeat ( Parser ) :
 
 		if len( context[ 'prompt' ] ) == offset :
 
+			context[ 'terminals' ].append( None )
+
 			return set( [ self.attach( offset ) ] ), set(), logits_mask
 
 		elif len( context[ 'prompt' ] ) > offset :
@@ -649,6 +697,8 @@ class TokensRepeat ( Parser ) :
 				stop_pos = match_forward_logits_mask( start_pos, logits_mask, context[ 'input_ids' ] )
 
 				if stop_pos is None :
+
+					context[ 'terminals' ].append( None )
 
 					return set( [ self.attach( offset ) ] ), set( [ len( context[ 'prompt' ] ) ] ), logits_mask
 
@@ -676,6 +726,12 @@ class Sample ( Parser ) :
 			k = 1
 
 		return Or( *random.sample( self.structure, k = k ) ).attach( offset ).parse( context )
+
+
+
+
+
+
 
 
 #
