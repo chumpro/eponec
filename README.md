@@ -26,34 +26,49 @@ Eponec is very simple, powerful and customizable.
 ### Working with text
 
 - Or
+  
 For matching either or any of a list of components
-	Or( 'A', 'B', 'C' )
+
+		Or( 'A', 'B', 'C' )
 
 - Group
+  
 Create an ordering.
-	Group( 'This ', 'is ', 'an ', 'example.' )
+
+		Group( 'This ', 'is ', 'an ', 'example.' )
 
 - Repeat
+  
 Allow for repetition.
-	Repeat( 'Ha' )
+
+		Repeat( 'Ha' )
 
 - Regex
+
 For matching using regular expressions.
-	Regex( r'[a-z ]+' )
+
+ 		Regex( r'[a-z ]+' )
 
 - Text
+
 For matching a whole string.
-	Text( 'Hello world!' )
+
+ 		Text( 'Hello world!' )
 
 - Label
+
 To name a portion of generated text.
-	Label( 'name', Regex( r'[A-Z][a-z]*' ) )
+
+ 		Label( 'name', Regex( r'[A-Z][a-z]*' ) )
 
 - Use
+
 To refer to a labeled portion of text.
-	Use( 'name' )
+
+ 		Use( 'name' )
 
 - Call
+
 To call a function that has access to the context, ie. labeled portions of text, and generate output. The called function can change the grammar based on the context by returning a Parser object.
 
 		def f( context ) :
@@ -68,25 +83,34 @@ To call a function that has access to the context, ie. labeled portions of text,
 ### Working with tokens directly
 
 - Token
+
 Matches a single token by id.
-	Token( tokenizer.eos_token_id )
+
+  	Token( tokenizer.eos_token_id )
 
 - TokensRepeat
+
 Matches from a list of tokens repeating over a continuous area in the text given a boolean tensor or list of token ids.
-	TokensRepeat( 1001, 1002, 1003 )
+
+ 	TokensRepeat( 1001, 1002, 1003 )
 
 
 ### Odd and useful stuff
 
 - Sample
+
 Sample k components and match them as an Or.
+
 	Sample( 'Luckily', 'Sadly', 'Surprisingly', 'As expected', k = 2 )
 
 - Input
+
 Read user input. The user input becomes part of the text. Please see the examples.
-	Input( prompt = '> ', True )
+
+ 	Input( prompt = '> ', True )
 
 - Eos
+
 Matches tokenizer.eos_token_id. Used to end parsing.
 
 	Eos()
@@ -135,7 +159,7 @@ Eponec is tested in a Python 3.10 conda environment with pytorch and transformer
 
 ## Programming style
 
-The eponec parsing mechanism is defined by the classes Parser and Matcher. To understand these, it is important to read the source code.
+The eponec parsing mechanism is defined by the classes Parser and Matcher. To understand these please read the source code.
 
 
 ## One little quirk
@@ -185,8 +209,4 @@ Nothing I know about, but all code paths have not been tested thoroughly. Especi
 Feel free to contribute and give suggestion. I will focus on bug fixing, but all suggestions are very welcome.
 
 Monero: 48hRRk1mN9nVLVrUL8e7qLNznEXzvsXzqWW24jurw4QAcaTwUa1K9FwGkzwkfGFNSzL58zNPLEGBeet6ELJ5VZ4zKDjdqiP
-
-
-
-Sent with Proton Mail secure email.
 
