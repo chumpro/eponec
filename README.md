@@ -169,9 +169,9 @@ Due to the way matching ( regular expressions ) work, it is not possible to dete
 For example:
 
 	Group(
-	Label( 'data', Regex( r'[a-z]+' ) ),
-	Text( '.' ),
-	Use( 'data' )
+		Label( 'data', Regex( r'[a-z]+' ) ),
+		Text( '.' ),
+		Use( 'data' )
 	)
 
 Here '.' is a "delimiter" and is necessary for 'data' to be available when it is used. It is also necessary to use a delimiter before Eos() at the end of a full parser. Typically Text is used as the delimiter.
@@ -179,9 +179,9 @@ Here '.' is a "delimiter" and is necessary for 'data' to be available when it is
 There is a special case, escaped strings, Text. Techinically those patterns can be matched with shortest match. However since other components will depend on this behaviors, and you still want to use regular expressions with longest match, Text is set to behave like Regex in this respect. In the following example the '.' delimiter is still necessary.
 
 	Group(
-	Label( 'data', Text( 'asdf' ) ),
-	Text( '.' ),
-	Use( 'data' )
+		Label( 'data', Text( 'asdf' ) ),
+		Text( '.' ),
+		Use( 'data' )
 	)
 
 So basically, put something between Label and whatever relies on that labeled data.
