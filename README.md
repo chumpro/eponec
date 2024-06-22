@@ -73,9 +73,9 @@ To call a function that has access to the context, ie. labeled portions of text,
 
 		def f( context ) :
 
-			# access and modify the parser context dictionary
+			context[ 'x' ] = int( context[ 'a' ] ) + int( context[ 'b' ] )
 
-			return some_parser_or_a_string
+			return str( context[ 'x' ] )	# A: One can return new Parser objects, B: 'x' will exist in the context going forward
 
 		Call( f )
 
