@@ -2,13 +2,17 @@
 
 Eponec is a programming tool that allows the use of grammar to guide generative language models. Eponec uses a novel grammar specification system that is suitable for text generation.
 
+Note: Writing documentation is not my superpower. Hopefully the following text will entice looking at the source code and trying things out.
+
 The following are among the features of eponec:
 
-- Labeled portions of text can be referenced within the same grammar specification and can be captured or used to change the structure of portions of the grammar.
-- Eponec is ambiguous, a single piece of text can have multiple interpretations simultaneously. Choosing interpretations is controllable.
 - Eponec grammars can mix operating on text and tokens allowing more control of the underlying language model.
+- Eponec is ambiguous, a single piece of text can have multiple interpretations simultaneously. It is controllable though.
 - Eponec parsing can be nested, for example to reinterpret user input or generated text before making decisions based on it.
-- Eponec can be extended to seamlessly work with networking, databases and other software.
+- Eponec can be extended to seamlessly work with other software.
+- When only a single string can matches the generated text, the remainder of it is appended to the text at no cost, without invoking model generate.
+- Labeled portions of text can be used within the same grammar specification both by user defined functions as well as echoed into the generated text.
+- It is possible to build grammars during parsing, eg. user defined functions can return parser components that then apply to the call site.
 
 Please have a look at the examples.
 
@@ -16,11 +20,11 @@ It is also worth mentioning that eponec does not reparse the text for each gener
 
 Eponec allows for parallelization of parsing, but this is not implemented yet.
 
-Currently eponec contains the basic set of grammar components including Or, Group, Repeat, Regex, Text, Label, Use and Call in addition to some grammar components useful for dealing with tokens which are Token and TokensRepeat. It is also easy to create new components, for example for math, web and databases.
+Eponec contains the basic set of grammar components including Or, Group, Repeat, Regex, Text, Label, Use and Call in addition to some grammar components useful for dealing with tokens which are Token and TokensRepeat. It is easy to create new components, for example for math, web and databases.
 
 Eponec uses a context dictionary during parsing. This is where labeled data is set. The generate method of Parser objects returns this dictionary after generation, making the labeled data available to the caller.
 
-Eponec is very simple, powerful and customizable.
+
 
 
 ### Working with text
@@ -29,55 +33,57 @@ Eponec is very simple, powerful and customizable.
   
 For matching either or any of a list of components
 
-		Or( 'A', 'B', 'C' )
+	Or( 'A', 'B', 'C' )
 
 - Group
   
 Create an ordering.
 
-		Group( 'This ', 'is ', 'an ', 'example.' )
+	Group( 'This ', 'is ', 'an ', 'example.' )
 
 - Repeat
   
 Allow for repetition.
 
-		Repeat( 'Ha' )
+	Repeat( 'Ha' )
 
 - Regex
 
 For matching using regular expressions.
 
- 		Regex( r'[a-z ]+' )
+ 	Regex( r'[a-z ]+' )
 
 - Text
 
 For matching a whole string.
 
- 		Text( 'Hello world!' )
+ 	Text( 'Hello world!' )
 
 - Label
 
 To name a portion of generated text.
 
- 		Label( 'name', Regex( r'[A-Z][a-z]*' ) )
+ 	Label( 'name', Regex( r'[A-Z][a-z]*' ) )
 
 - Use
 
 To refer to a labeled portion of text.
 
- 		Use( 'name' )
+ 	Use( 'name' )
 
 - Call
 
 To call a function that has access to the context, ie. labeled portions of text, and generate output. The called function can change the grammar based on the context by returning a Parser object.
 
-		def f( context ) :
+	def f( context ) :
 
-			context[ 'x' ] = int( context[ 'a' ] ) + int( context[ 'b' ] )
+		context[ 'x' ] = int( context[ 'a' ] ) + int( context[ 'b' ] )
 
-			return str( context[ 'x' ] )	# A: One can return new Parser objects, B: 'x' will exist in the context going forward
+		return str( context[ 'x' ] )	# A: One can return new Parser objects, B: 'x' will exist in the context going forward
 
-		Call( f )
+	Call( f )
+
+
 
 
 ### Working with tokens directly
@@ -93,6 +99,8 @@ Matches a single token by id.
 Matches from a list of tokens repeating over a continuous area in the text given a boolean tensor or list of token ids.
 
  	TokensRepeat( 1001, 1002, 1003 )
+
+
 
 
 ### Odd and useful stuff
@@ -136,6 +144,8 @@ is equivalent to
 In addition to the grammar components, eponec has some utility functions.
 
 
+
+
 ## Installation
 
 Eponec is tested in a Python 3.10 conda environment with pytorch and transformers. Please read the instructions of the individual packages. The following sets up the conda environment I use for development ( no GPU ).
@@ -157,9 +167,12 @@ Eponec is tested in a Python 3.10 conda environment with pytorch and transformer
 
 
 
+
 ## Programming style
 
 The eponec parsing mechanism is defined by the classes Parser and Matcher. To understand these please read the source code.
+
+
 
 
 ## One little quirk
@@ -188,9 +201,12 @@ So basically, put something between Label and whatever relies on that labeled da
 
 
 
+
 ## Performance
 
 Performance. I am writing this on a laptop without a GPU. Generation slows down quite a bit with larger prompts. It may be possible to correct this, but it is recommended to use eponec on a computer with a capable GPU.
+
+
 
 
 ## Bugs
@@ -198,10 +214,14 @@ Performance. I am writing this on a laptop without a GPU. Generation slows down 
 Nothing I know about, but all code paths have not been tested thoroughly. Especially the ability to use eponec outside text generation, that is a as a ordinary parser of constant strings.
 
 
+
+
 ## TODO
 
 - Parallelization
 - Sample
+
+
 
 
 ## Contributions
