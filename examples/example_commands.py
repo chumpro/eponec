@@ -4,7 +4,7 @@ import eponec
 from eponec import Group, Repeat, Text, Regex, Input, Label, Or, Call
 
 
-eponec.init()
+eponec.init_llama()
 
 
 def command_excamine( context ) :
@@ -40,7 +40,7 @@ prompt = ' '.join( """
 parser = Repeat(
 	Group(
 		'A simpler and more concise way to say "',
-		Label( 'input', Input( '> ', False ) ),
+		Label( 'input', Input( '> ' ) ),
 		'" is "',
 		Or(
 			Group( 'excamine', Label( 'subject', Regex( r'[a-z ]+' ) ), '"', Call( command_excamine ) ),

@@ -4,7 +4,7 @@ import eponec
 from eponec import Group, Repeat, Text, Regex, Input, TokensRepeat, Or, Label, Use, Sample, Eos
 
 
-eponec.init()
+eponec.init_llama()
 
 
 sentence_logits_mask = eponec.regex_token_match( r'[a-zA-Z ,":;]+' )
