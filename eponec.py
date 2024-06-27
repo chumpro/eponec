@@ -12,10 +12,10 @@ from transformers import LogitsProcessor, LogitsProcessorList
 
 
 
-config = {}
+config = None
 
 
-def init( model_id = None, local_files_only = True ) :
+def init_llama( model_id = None, local_files_only = True ) :
 
 	global config
 
@@ -28,9 +28,8 @@ def init( model_id = None, local_files_only = True ) :
 	tokenizer = AutoTokenizer.from_pretrained(
 		config[ 'model_id' ],
 		legacy = False,
-		local_files_only = True,
+		local_files_only = local_files_only,
 		clean_up_tokenization_spaces = False,
-#		clean_up_tokenization_spaces = True,
 		add_bos_token = False,
 		add_eos_token = False,
 	)
@@ -43,38 +42,42 @@ def init( model_id = None, local_files_only = True ) :
 
 	config[ 'vocab_size' ] = len( config[ 'tokenizer' ] )
 
+	def get_usable_vocab() :
+
+		vocab = { v : fix_token( k ) for k, v in config[ 'tokenizer' ].get_vocab().items() }
+
+		return vocab
+
+	def fix_token( s ) :
+
+		return s.replace( chr( 9601 ), ' ' ).replace( '<0x0A>', '\n' )
+
 	config[ 'usable_vocab' ] = get_usable_vocab()
 
 	config[ 'empty_logits_mask' ] = torch.zeros( config[ 'vocab_size' ], dtype = torch.bool )
 
+	def fix_output( s ) :
 
+		return s.replace( '</s> ', '</s>' )
 
-def encode( string ) :
+	config[ 'fix_output' ] = fix_output
 
-	output = config[ 'tokenizer' ]( string, return_tensors = "pt", return_offsets_mapping = True )
+	def encode( string ) :
 
-	return output[ 'input_ids' ][ 0 ], output[ 'offset_mapping' ][ 0 ]
+		output = config[ 'tokenizer' ]( string, return_tensors = "pt", return_offsets_mapping = True, add_special_tokens = False )
 
+		return output[ 'input_ids' ][ 0 ], output[ 'offset_mapping' ][ 0 ]
 
-def decode( token_ids ) :
+	config[ 'encode' ] = encode
 
-	string = config[ 'tokenizer' ].decode( token_ids )
+	def decode( token_ids ) :
 
-#	string = ''.join( [ config[ 'usable_vocab' ][ t ] for t in token_ids ] )
+		string = config[ 'tokenizer' ].decode( token_ids )
 
-	return string
+		return string
 
+	config[ 'decode' ] = decode
 
-def get_usable_vocab() :
-
-	vocab = { v : fix_token( k ) for k, v in config[ 'tokenizer' ].get_vocab().items() }
-
-	return vocab
-
-
-def fix_token( s ) :
-
-	return s.replace( chr( 9601 ), ' ' ).replace( '<0x0A>', '\n' )
 
 
 
@@ -296,7 +299,7 @@ class Parser ( object ) :
 
 			prompt = context[ 'prompt' ]
 
-			input_ids, offset_mapping = encode( prompt )
+			input_ids, offset_mapping = config[ 'encode' ]( prompt )
 
 			context[ 'input_ids' ] = input_ids
 			context[ 'offset_mapping' ] = offset_mapping
@@ -339,7 +342,7 @@ class Parser ( object ) :
 
 				return context
 
-			context[ 'prompt' ] = decode( output_ids )								# NOTE: Big tokens are best.
+			context[ 'prompt' ] = config[ 'fix_output' ]( config[ 'decode' ]( output_ids ) )
 
 
 
@@ -387,6 +390,10 @@ class Regex ( Parser ) :
 class Text ( Parser ) :
 
 	def parse( self, offset, context ) :
+
+		def chrs( s ) :
+
+			return [ x for x in s ]
 
 		[ text ] = self.structure
 
@@ -491,7 +498,7 @@ class Repeat ( Parser ) :
 
 		if len( self.structure ) > 1 :
 
-			parser = Or( *self.structure )
+			parser = Group( *self.structure )
 
 		else :
 
@@ -615,13 +622,9 @@ class Input ( Parser ) :
 
 	def parse( self, offset, context ) :
 
-		[ prompt, print_prompt ] = self.structure
+		[ input_prompt ] = self.structure
 
-		if print_prompt :
-
-			print( context[ 'prompt' ] )
-
-		return Text( input( prompt ) ).attach( offset ).parse( context )
+		return Text( input( input_prompt ) ).attach( offset ).parse( context )
 
 
 class Token ( Parser ) :
