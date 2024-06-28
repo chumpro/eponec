@@ -115,7 +115,7 @@ Sample k components and match them as an Or.
 
 Read user input. The user input becomes part of the text. Please see the examples.
 
- 	Input( prompt = '> ', True )
+ 	Input( prompt = '> ' )
 
 - Eos
 
